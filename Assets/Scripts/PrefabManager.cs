@@ -6,11 +6,11 @@ using UnityEngine.Assertions;
 
 public class Prefab
 {
-	abstract class ComponentInfo
+	interface ComponentInfo
 	{
-		public abstract System.Type GetComponentType();
-		public abstract void Set(Entity entity, EntityManager entity_manager);
-		public abstract bool HasDefaultValues();
+		System.Type GetComponentType();
+		void Set(Entity entity, EntityManager entity_manager);
+		bool HasDefaultValues();
 	} 
 
 	class ComponentInfo<ComponentType> : ComponentInfo where ComponentType : struct, IComponentData
@@ -22,17 +22,17 @@ public class Prefab
 			_Component = component;
 		}
 
-		public override void Set(Entity entity, EntityManager entity_manager)
+		public void Set(Entity entity, EntityManager entity_manager)
 		{
 			entity_manager.SetComponentData(entity, _Component);
 		}		
 
-		public override System.Type GetComponentType()
+		public System.Type GetComponentType()
 		{
 			return typeof(ComponentType);
 		}
 
-		public override bool HasDefaultValues()
+		public bool HasDefaultValues()
 		{
 			return _Component.Equals(System.Activator.CreateInstance<ComponentType>());
 		}
