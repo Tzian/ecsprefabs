@@ -3,9 +3,18 @@ using Unity.Mathematics;
 using UnityEngine;
 using Unity.Transforms2D;
 
-public class Startup
+public class Example : ComponentSystem
 {
     static PrefabManager _PrefabManager;
+
+    struct Data
+    {
+        public int Length;
+        public ComponentDataArray<Gun> _Guns;
+        public ComponentDataArray<Position> _Positions;        
+    }
+
+    [Inject] Data _Data;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     public static void AfterSceneLoad()
@@ -14,7 +23,8 @@ public class Startup
         _PrefabManager.CollectPrefabs();
         _PrefabManager.PreparePrefabs();
 
-        Prefabs.PlayerShip.Spawn();
+        Prefabs.PlayerShip.Spawn()
+            .Set(new Position{_X = 100, _Y = 100});
 
         int asteroid_count = 400;
         int world_size = 1000000;
@@ -36,5 +46,14 @@ public class Startup
                 .Set(new CircleCollider{_Radius = radius})
                 .Set(new CircleSprite{_Radius = radius, _Color = color});
         }
+    }
+
+    protected override void OnUpdate()
+    {
+        for(int i = 0; i < _Data.Length; ++i)
+        {
+            PostUpdateCommands.Spawn(Prefabs.Bullet)
+                .Set(_Data._Positions[i]);
+        }    
     }
 }

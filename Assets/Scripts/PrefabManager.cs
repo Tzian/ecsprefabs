@@ -10,6 +10,7 @@ public class Prefab
 	{
 		System.Type GetComponentType();
 		void Set(Entity entity, EntityManager entity_manager);
+		void Set(EntityCommandBuffer entity_command_buffer);
 		bool HasDefaultValues();
 	} 
 
@@ -26,6 +27,11 @@ public class Prefab
 		{
 			entity_manager.SetComponentData(entity, _Component);
 		}		
+
+		public void Set(EntityCommandBuffer entity_command_buffer)
+		{
+			entity_command_buffer.SetComponent<ComponentType>(_Component);
+		}
 
 		public System.Type GetComponentType()
 		{
@@ -61,6 +67,18 @@ public class Prefab
 		return this;
 	}
 
+	public ComponentType Get<ComponentType>() where ComponentType : struct, IComponentData
+	{
+		foreach(ComponentInfo component in _Components)
+		{
+			if(component.GetComponentType() == typeof(ComponentType))
+			{
+				return (component as ComponentInfo<ComponentType>)._Component;
+			}
+		}
+		throw new System.Exception("Missing component:" + typeof(ComponentType).ToString());
+	}
+
 	public Entity Spawn()
 	{		
 		Assert.IsTrue(_EntityManager != null);
@@ -73,6 +91,20 @@ public class Prefab
 		}
 
 		return entity;
+	}
+
+	public EntityCommandBuffer Spawn(EntityCommandBuffer entity_command_buffer)
+	{		
+		Assert.IsTrue(_EntityManager != null);
+
+		entity_command_buffer.CreateEntity(_Archetype);
+
+		foreach(ComponentInfo component in _NonDefaultComponents)
+		{
+			component.Set(entity_command_buffer);
+		}
+
+		return entity_command_buffer;
 	}
 
 	public void Prepare(EntityManager entity_manager)
@@ -133,5 +165,37 @@ public class PrefabManager
 		{
 			kvp.Value.Prepare(entity_manager);
 		}
+	}
+}
+
+public struct PrefabCommandBuffer
+{
+	public Prefab _Prefab{get; private set;}
+	public EntityCommandBuffer _CommandBuffer{get; private set;}
+
+	public PrefabCommandBuffer(Prefab prefab, EntityCommandBuffer command_buffer)
+	{
+		_Prefab = prefab;
+		_CommandBuffer = command_buffer;
+		prefab.Spawn(command_buffer);
+	}
+
+	public PrefabCommandBuffer Set<ComponentType>(ComponentType component) where ComponentType : struct, IComponentData
+	{
+		_CommandBuffer.Set(component);
+		return this;
+	}
+
+	public ComponentType Get<ComponentType>() where ComponentType : struct, IComponentData
+	{
+		return _Prefab.Get<ComponentType>();
+	}
+}
+
+public static class PrefabManagerExtensions
+{
+	public static PrefabCommandBuffer Spawn(this EntityCommandBuffer command_buffer, Prefab prefab)
+	{
+		return new PrefabCommandBuffer(prefab, command_buffer);
 	}
 }
