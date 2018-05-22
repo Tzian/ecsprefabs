@@ -3,10 +3,20 @@ using Unity.Mathematics;
 using UnityEngine;
 using Unity.Transforms2D;
 
-public class Example : ComponentSystem
+public static class InitializePrefabManager
 {
     static PrefabManager _PrefabManager;
 
+    public static void Initialize()
+    {
+        _PrefabManager = new PrefabManager();
+        _PrefabManager.CollectPrefabs();
+        _PrefabManager.PreparePrefabs();        
+    }
+}
+
+public class Example : ComponentSystem
+{
     struct Data
     {
         public int Length;
@@ -16,36 +26,12 @@ public class Example : ComponentSystem
 
     [Inject] Data _Data;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    public static void AfterSceneLoad()
+    protected override void OnCreateManager(int capacity)
     {
-        _PrefabManager = new PrefabManager();
-        _PrefabManager.CollectPrefabs();
-        _PrefabManager.PreparePrefabs();
+        InitializePrefabManager.Initialize();
 
         Prefabs.PlayerShip.Spawn()
-            .Set(new Position{_X = 100, _Y = 100});
-
-        int asteroid_count = 400;
-        int world_size = 1000000;
-        int minimum_asteroid_size = 5;
-        int maximum_asteroid_size = 1000;
-        for(int i = 0; i < asteroid_count; ++i)
-        {
-            long x = (long)Random.Range(-world_size, world_size);
-            long y = (long)Random.Range(-world_size, world_size);
-            long radius = (long)Random.Range(minimum_asteroid_size, maximum_asteroid_size);
-            Color color = Color.red;
-
-            Entity asteroid = Prefabs.Asteroid.Spawn();
-            
-            RigidBody rigid_body = asteroid.Get<RigidBody>();
-            asteroid
-                .Set(new Position(x, y))
-                .Set(rigid_body)
-                .Set(new CircleCollider{_Radius = radius})
-                .Set(new CircleSprite{_Radius = radius, _Color = color});
-        }
+            .Set(new Position{_X = 100, _Y = 100});        
     }
 
     protected override void OnUpdate()
